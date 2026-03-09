@@ -1,0 +1,56 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #00d900;
+  --color-primary-hover: #00c000;
+  --color-bg-light: #f7f9f8;
+  --color-text-dark: #111827;
+  --color-text-gray: #4b5563;
+  --color-text-light-gray: #6b7280;
+  --color-border-color: #e5e7eb;
+  --font-sans: 'Outfit', sans-serif;
+}
+
+* {
+  font-family: 'Outfit', sans-serif;
+}
+
+body {
+  background-color: var(--color-bg-light);
+  color: var(--color-text-dark);
+}
+
+/* Custom Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 8px;
+  /* Sleek and thin */
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-light);
+  /* Blends perfectly with --bg-light */
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #d1d5db;
+  /* Soft gray for seamless look */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-primary);
+  /* Pops on hover */
+}
+
+/* Hide scrollbar for specific elements */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
