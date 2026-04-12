@@ -91,7 +91,7 @@ export default function SignIn() {
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full pl-10 pr-4 py-[0.7rem] border border-gray-100 rounded-lg text-[0.95rem] transition-all bg-[#f9fafb] placeholder-gray-400 focus:outline-none focus:border-[#00d900] focus:bg-white focus:ring-[3px] focus:ring-[rgba(0,217,0,0.1)]"
+                            className="w-full pl-10 pr-4 py-[0.7rem] border border-gray-100 rounded-lg text-[0.95rem] transition-all bg-[#f9fafb] placeholder-gray-400 focus:outline-none focus:border-[#00d900] focus:bg-white focus:ring-[3px] focus:ring-[rgba(0_217_0_/_0.1)]"
                             placeholder="you@example.com"
                             disabled={isLoading}
                         />
@@ -106,7 +106,7 @@ export default function SignIn() {
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full pl-10 pr-4 py-[0.7rem] border border-gray-100 rounded-lg text-[0.95rem] transition-all bg-[#f9fafb] placeholder-gray-400 focus:outline-none focus:border-[#00d900] focus:bg-white focus:ring-[3px] focus:ring-[rgba(0,217,0,0.1)]"
+                            className="w-full pl-10 pr-4 py-[0.7rem] border border-gray-100 rounded-lg text-[0.95rem] transition-all bg-[#f9fafb] placeholder-gray-400 focus:outline-none focus:border-[#00d900] focus:bg-white focus:ring-[3px] focus:ring-[rgba(0_217_0_/_0.1)]"
                             placeholder="••••••••"
                             disabled={isLoading}
                         />

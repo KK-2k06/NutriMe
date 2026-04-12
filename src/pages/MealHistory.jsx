@@ -25,9 +25,9 @@ function MealCard({ meal, onDelete }) {
 
     return (
         <motion.div
-            whileHover={{ y: -3, boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}
+            whileHover={{ y: -3, boxShadow: '0 8px 24px rgba(0, 0, 0, 0.08)' }}
             transition={{ duration: 0.2 }}
-            className="bg-white rounded-2xl border border-[#f3f4f6] overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.04)] flex flex-col"
+            className="bg-white rounded-2xl border border-[#f3f4f6] overflow-hidden shadow-[0_2px_8px_rgba(0_0_0_/_0.04)] flex flex-col"
         >
             {/* Image Area */}
             <div className={`relative h-[240px] overflow-hidden shrink-0 flex items-center justify-center ${!meal.image ? 'bg-gradient-to-br from-[#00d900]/10 to-[#00a000]/5' : ''}`}>

@@ -1,8 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, X, ChevronDown, Loader2 } from 'lucide-react';
+import {
+    Upload, Loader2, User, Users, Calendar,
+    Ruler, Scale, Heart, Activity, Target, AlertCircle
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+
+const INITIAL_PERSON_STATE = {
+    age: '',
+    gender: '1',
+    height: '',
+    weight: '',
+    apHi: '',
+    apLo: '',
+    cholesterol: '',
+    glucose: '',
+    active: true,
+    allergies: ''
+};
 
 export default function Settings() {
     const { user, getProfile, saveProfile, signOut } = useAuth();
@@ -12,77 +28,131 @@ export default function Settings() {
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
 
-    // Form state
-    const [fullName, setFullName] = useState('');
-    const [height, setHeight] = useState('');
-    const [weight, setWeight] = useState('');
-    const [goal, setGoal] = useState('maintenance');
-    const [restrictions, setRestrictions] = useState([]);
-    const [newRestriction, setNewRestriction] = useState('');
-    const [units, setUnits] = useState('metric'); // currently decorative
+    // Multi-Person State
+    const [profiles, setProfiles] = useState({
+        user: { ...INITIAL_PERSON_STATE, fullName: '', goal: '' },
+        father: { ...INITIAL_PERSON_STATE, gender: '2' },
+        mother: { ...INITIAL_PERSON_STATE, gender: '1' },
+        grandfather: { ...INITIAL_PERSON_STATE, gender: '2' },
+        grandmother: { ...INITIAL_PERSON_STATE, gender: '1' }
+    });
 
-    // Load profile data
+    const updatePersonField = (person, field, value) => {
+        setProfiles(prev => ({
+            ...prev,
+            [person]: { ...prev[person], [field]: value }
+        }));
+    };
+
     useEffect(() => {
         const fetchProfile = async () => {
             if (!user) return;
-            const { data, error } = await getProfile();
-            if (data) {
-                setFullName(data.full_name || '');
-                setHeight(data.height || '');
-                setWeight(data.weight || '');
-                setGoal(data.goal || 'maintenance');
-                if (data.allergies) {
-                    setRestrictions(data.allergies.split(',').map(s => s.trim()).filter(Boolean));
+            try {
+                const { data } = await getProfile();
+                if (data) {
+                    const parseNum = (val) => {
+                        if (!val && val !== 0) return '';
+                        const parsed = parseFloat(val);
+                        return isNaN(parsed) ? '' : parsed.toString();
+                    };
+
+                    const sanitizeFamily = (person, defaultGender) => {
+                        if (!person) return { ...INITIAL_PERSON_STATE, gender: defaultGender };
+                        return {
+                            age: parseNum(person.age),
+                            gender: person.gender?.toString() || defaultGender,
+                            height: parseNum(person.height),
+                            weight: parseNum(person.weight),
+                            apHi: parseNum(person.apHi || person.ap_hi),  // Add backward compatibility loosely
+                            apLo: parseNum(person.apLo || person.ap_lo),
+                            cholesterol: parseNum(person.cholesterol),
+                            glucose: parseNum(person.glucose),
+                            active: person.active !== undefined ? Boolean(person.active) : true,
+                            allergies: person.allergies || ''
+                        };
+                    };
+
+                    let familyHistory = data.family_health_history || {};
+                    if (typeof familyHistory === 'string') {
+                        try {
+                            familyHistory = JSON.parse(familyHistory);
+                        } catch (e) {
+                            console.error("Failed to parse family_health_history string:", e);
+                            familyHistory = {};
+                        }
+                    }
+
+                    setProfiles({
+                        user: {
+                            fullName: data.full_name || '',
+                            age: parseNum(data.age),
+                            gender: data.gender?.toString() || '1',
+                            height: parseNum(data.height),
+                            weight: parseNum(data.weight),
+                            apHi: parseNum(data.systolic_bp),
+                            apLo: parseNum(data.diastolic_bp),
+                            cholesterol: parseNum(data.cholesterol_mgdl),
+                            glucose: parseNum(data.glucose_mgdl),
+                            active: data.active === 1,
+                            allergies: data.allergies || '',
+                            goal: data.goal || '',
+                            cardio_risk_score: data.cardio_risk_score || null
+                        },
+                        father: sanitizeFamily(familyHistory?.father, '2'),
+                        mother: sanitizeFamily(familyHistory?.mother, '1'),
+                        grandfather: sanitizeFamily(familyHistory?.grandfather, '2'),
+                        grandmother: sanitizeFamily(familyHistory?.grandmother, '1')
+                    });
                 }
+            } catch (err) {
+                console.error("Failed to load profile", err);
+            } finally {
+                setIsLoading(false);
             }
-            setIsLoading(false);
         };
         fetchProfile();
     }, [user, getProfile]);
-
-    const addRestriction = () => {
-        const trimmed = newRestriction.trim();
-        if (trimmed && !restrictions.includes(trimmed)) {
-            setRestrictions([...restrictions, trimmed]);
-        }
-        setNewRestriction('');
-    };
-
-    const removeRestriction = (item) => {
-        setRestrictions(restrictions.filter(r => r !== item));
-    };
-
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter') addRestriction();
-    };
 
     const handleUpdateProfile = async () => {
         setIsSaving(true);
         setMessage({ type: '', text: '' });
         try {
-            const w = parseFloat(weight);
-            let target_calories = Math.round(w * 24); // Baseline
-            if (goal === 'weight_loss') target_calories -= 500;
-            if (goal === 'muscle_gain') target_calories += 500;
+            const w = parseFloat(profiles.user.weight) || 0;
+            let target_calories = Math.round(w * 24);
+            if (profiles.user.goal === 'weight_loss') target_calories -= 500;
+            if (profiles.user.goal === 'muscle_gain') target_calories += 500;
 
             const { error } = await saveProfile({
-                full_name: fullName.trim(),
-                height: parseFloat(height),
-                weight: w,
-                goal,
+                full_name: profiles.user.fullName.trim(),
+                age: parseInt(profiles.user.age) || null,
+                gender: parseInt(profiles.user.gender) || null,
+                height: parseFloat(profiles.user.height) || null,
+                weight: w || null,
+                systolic_bp: parseInt(profiles.user.apHi) || null,
+                diastolic_bp: parseInt(profiles.user.apLo) || null,
+                cholesterol_mgdl: parseFloat(profiles.user.cholesterol) || null,
+                glucose_mgdl: parseFloat(profiles.user.glucose) || null,
+                active: profiles.user.active ? 1 : 0,
+                goal: profiles.user.goal,
                 target_calories,
-                allergies: restrictions.join(', ')
+                allergies: profiles.user.allergies.trim(),
+                cardio_risk_score: profiles.user.cardio_risk_score,
+                family_health_history: {
+                    father: profiles.father,
+                    mother: profiles.mother,
+                    grandfather: profiles.grandfather,
+                    grandmother: profiles.grandmother
+                }
             });
 
             if (error) throw error;
-            setMessage({ type: 'success', text: 'Profile updated successfully!' });
+            setMessage({ type: 'success', text: 'All health records updated successfully!' });
         } catch (error) {
             console.error('Update failed:', error);
-            setMessage({ type: 'error', text: 'Failed to update profile.' });
+            setMessage({ type: 'error', text: 'Failed to update profiles. Please check your connection.' });
         } finally {
             setIsSaving(false);
-            // Auto hide message after 3 seconds
-            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+            setTimeout(() => setMessage({ type: '', text: '' }), 4000);
         }
     };
 
@@ -91,9 +161,17 @@ export default function Settings() {
         navigate('/');
     };
 
-    const inputCls = "w-full px-4 py-3 rounded-lg border border-gray-200 text-[0.9rem] text-[#111827] focus:outline-none focus:border-[#00d900] focus:ring-1 focus:ring-[#00d900] transition-colors bg-white";
-    const labelCls = "text-[0.8rem] font-semibold text-gray-500 mb-1.5";
-    const sectionCls = "bg-white rounded-2xl border border-[#f3f4f6] p-7 shadow-[0_2px_8px_rgba(0,0,0,0.03)]";
+    const inputCls = "w-full pl-4 pr-4 py-[0.8rem] border border-gray-100 rounded-xl text-[1rem] transition-all bg-[#f9fafb] placeholder-gray-400 focus:outline-none focus:border-[#00d900] focus:bg-white focus:ring-[4px] focus:ring-[rgba(0_217_0_/_0.08)] font-medium";
+    const labelCls = "text-[0.85rem] font-bold text-[#111827] mb-2 px-1";
+    const sectionCls = "bg-white rounded-[20px] border border-[#f3f4f6] px-8 py-8 shadow-[0_2px_12px_rgba(0_0_0_/_0.02)]";
+
+    if (isLoading) {
+        return (
+            <div className="flex h-full items-center justify-center">
+                <Loader2 size={32} className="animate-spin text-[#00d900]" />
+            </div>
+        );
+    }
 
     return (
         <motion.div
@@ -101,7 +179,7 @@ export default function Settings() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.3 }}
-            className="flex flex-col gap-6 max-w-[780px] mx-auto"
+            className="flex flex-col gap-6 max-w-[850px] mx-auto pb-20"
         >
             {/* Alerts */}
             {message.text && (
@@ -114,204 +192,259 @@ export default function Settings() {
                 </motion.div>
             )}
 
-            {/* Account Details */}
+            {/* Account Settings */}
             <div className={sectionCls}>
-                <h2 className="text-[1.15rem] font-bold text-[#111827] mb-6">Account Details</h2>
-
-                {isLoading ? (
-                    <div className="flex items-center justify-center py-10">
-                        <Loader2 className="animate-spin text-[#00d900]" size={24} />
+                <div className="flex items-center gap-4 mb-8">
+                    <div className="p-2.5 rounded-xl bg-gray-50 text-gray-400">
+                        <User size={22} />
                     </div>
-                ) : (
-                    <div className="flex flex-col sm:flex-row gap-8 items-start">
-                        {/* Avatar */}
-                        <div className="flex flex-col items-center gap-3 shrink-0">
-                            <div className="w-[110px] h-[110px] rounded-full bg-[#fde8d8] flex items-center justify-center overflow-hidden border-4 border-white shadow-md">
-                                <img
-                                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(fullName || 'User')}&background=ffccb3&color=c0602a&size=110`}
-                                    alt="Profile"
-                                    className="w-full h-full object-cover"
-                                />
-                            </div>
-                            <button className="flex items-center gap-1.5 text-[0.8rem] font-semibold text-[#00d900] hover:text-[#00b000] transition-colors cursor-pointer">
-                                <Upload size={14} />
-                                Upload Picture
-                            </button>
-                        </div>
-
-                        {/* Fields */}
-                        <div className="flex flex-col gap-4 flex-1 w-full">
-                            <div className="flex flex-col">
-                                <label className={labelCls}>Full Name</label>
-                                <input
-                                    type="text"
-                                    value={fullName}
-                                    onChange={(e) => setFullName(e.target.value)}
-                                    className={inputCls}
-                                />
-                            </div>
-                            <div className="flex flex-col">
-                                <label className={labelCls}>Email Address</label>
-                                <input
-                                    type="email"
-                                    value={user?.email || ''}
-                                    readOnly
-                                    className={`${inputCls} bg-gray-50 text-gray-400 cursor-not-allowed`}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Physical Profile */}
-            <div className={sectionCls}>
-                <h2 className="text-[1.15rem] font-bold text-[#111827] mb-6">Physical Profile</h2>
-
-                <div className="flex gap-5">
-                    <div className="flex flex-col flex-1">
-                        <label className={labelCls}>Height</label>
-                        <div className="flex rounded-lg border border-gray-200 overflow-hidden focus-within:border-[#00d900] focus-within:ring-1 focus-within:ring-[#00d900] transition-all">
-                            <input
-                                type="number"
-                                value={height}
-                                onChange={(e) => setHeight(e.target.value)}
-                                className="flex-1 px-4 py-3 text-[0.9rem] text-[#111827] focus:outline-none bg-white"
-                            />
-                            <span className="px-4 flex items-center bg-gray-50 text-gray-400 text-[0.85rem] font-semibold border-l border-gray-200">cm</span>
-                        </div>
-                    </div>
-                    <div className="flex flex-col flex-1">
-                        <label className={labelCls}>Weight</label>
-                        <div className="flex rounded-lg border border-gray-200 overflow-hidden focus-within:border-[#00d900] focus-within:ring-1 focus-within:ring-[#00d900] transition-all">
-                            <input
-                                type="number"
-                                value={weight}
-                                onChange={(e) => setWeight(e.target.value)}
-                                className="flex-1 px-4 py-3 text-[0.9rem] text-[#111827] focus:outline-none bg-white"
-                            />
-                            <span className="px-4 flex items-center bg-gray-50 text-gray-400 text-[0.85rem] font-semibold border-l border-gray-200">kg</span>
-                        </div>
-                    </div>
+                    <h2 className="font-extrabold text-[1.4rem] text-[#111827] tracking-tight">Account Settings</h2>
                 </div>
-            </div>
 
-            {/* Dietary Goals & Restrictions */}
-            <div className={sectionCls}>
-                <h2 className="text-[1.15rem] font-bold text-[#111827] mb-6">Dietary Goals & Restrictions</h2>
-
-                <div className="flex flex-col gap-5">
-                    {/* Diet Goal */}
-                    <div className="flex flex-col">
-                        <label className={labelCls}>Diet Goal</label>
-                        <div className="relative">
-                            <select
-                                value={goal}
-                                onChange={(e) => setGoal(e.target.value)}
-                                className={`${inputCls} appearance-none pr-10 cursor-pointer`}
-                            >
-                                <option value="weight_loss">Weight Loss</option>
-                                <option value="muscle_gain">Muscle Gain</option>
-                                <option value="maintenance">Maintenance</option>
-                            </select>
-                            <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                <div className="flex flex-col sm:flex-row gap-8 items-start">
+                    <div className="flex flex-col items-center gap-4 shrink-0">
+                        <div className="w-[100px] h-[100px] rounded-[24px] bg-[#fde8d8] flex items-center justify-center overflow-hidden border-2 border-gray-100 shadow-sm">
+                            <img
+                                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(profiles.user.fullName || user?.email || 'User')}&background=e2e8f0&color=475569&size=100`}
+                                alt="Profile"
+                                className="w-full h-full object-cover"
+                            />
                         </div>
+                        <button className="text-[0.8rem] font-bold text-[#00d900] hover:text-[#00b000] transition-colors flex items-center gap-1.5">
+                            <Upload size={14} strokeWidth={2.5} /> Update
+                        </button>
                     </div>
 
-                    {/* Allergies & Restrictions */}
-                    <div className="flex flex-col gap-3">
-                        <label className={labelCls}>Allergies & Restrictions</label>
-
-                        {/* Tags */}
-                        {restrictions.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                                {restrictions.map((item) => (
-                                    <span
-                                        key={item}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#e6ffed] text-[#00a000] text-[0.8rem] font-semibold rounded-full border border-[#b3f0c0]"
-                                    >
-                                        {item}
-                                        <button
-                                            onClick={() => removeRestriction(item)}
-                                            className="text-[#00a000] hover:text-red-400 transition-colors cursor-pointer"
-                                        >
-                                            <X size={13} />
-                                        </button>
-                                    </span>
-                                ))}
-                            </div>
-                        )}
-
-                        {/* Add input */}
-                        <div className="flex gap-2">
+                    <div className="flex flex-col gap-6 flex-1 w-full">
+                        <div className="flex flex-col">
+                            <label className={labelCls}>Full Name</label>
                             <input
                                 type="text"
-                                placeholder="Add restriction (e.g., Dairy)"
-                                value={newRestriction}
-                                onChange={(e) => setNewRestriction(e.target.value)}
-                                onKeyDown={handleKeyDown}
-                                className={`${inputCls} flex-1`}
+                                value={profiles.user.fullName}
+                                onChange={(e) => updatePersonField('user', 'fullName', e.target.value)}
+                                className={inputCls}
+                                placeholder="Enter your full name"
                             />
-                            <button
-                                onClick={addRestriction}
-                                className="px-5 py-3 bg-[#00d900] hover:bg-[#00c000] text-black font-bold text-[0.85rem] rounded-lg transition-colors cursor-pointer shrink-0"
-                            >
-                                Add
-                            </button>
+                        </div>
+                        <div className="flex flex-col">
+                            <label className={labelCls}>Auth Email</label>
+                            <input
+                                type="email"
+                                value={user?.email || ''}
+                                readOnly
+                                className={`${inputCls} bg-gray-50 opacity-60 cursor-not-allowed`}
+                            />
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* App Preferences */}
+            {/* User Clinical Profile */}
             <div className={sectionCls}>
-                <h2 className="text-[1.15rem] font-bold text-[#111827] mb-6">App Preferences</h2>
+                <ProfileSection
+                    title="Your Clinical Profile"
+                    person={profiles.user}
+                    isUser={true}
+                    updateField={(f, v) => updatePersonField('user', f, v)}
+                    isLoading={isSaving}
+                />
+            </div>
 
-                <div className="flex flex-col gap-2">
-                    <label className={labelCls}>Measurement Units</label>
-                    <div className="flex items-center gap-6">
-                        {[
-                            { id: 'metric', label: 'Metric (kg, cm)' },
-                            { id: 'imperial', label: 'Imperial (lb, ft)' },
-                        ].map(({ id, label }) => (
-                            <label key={id} className="flex items-center gap-2.5 cursor-pointer select-none">
-                                <div
-                                    onClick={() => setUnits(id)}
-                                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all cursor-pointer ${units === id ? 'border-[#00d900]' : 'border-gray-300'}`}
-                                >
-                                    {units === id && (
-                                        <div className="w-2.5 h-2.5 rounded-full bg-[#00d900]" />
-                                    )}
-                                </div>
-                                <span
-                                    onClick={() => setUnits(id)}
-                                    className={`text-[0.9rem] font-medium ${units === id ? 'text-[#111827]' : 'text-gray-400'}`}
-                                >
-                                    {label}
-                                </span>
-                            </label>
-                        ))}
-                    </div>
-                </div>
+            <Separator label="Paternal Records" />
+
+            <div className={sectionCls}>
+                <ProfileSection
+                    title="Father's Health Record"
+                    person={profiles.father}
+                    updateField={(f, v) => updatePersonField('father', f, v)}
+                    isLoading={isSaving}
+                />
+            </div>
+
+            <Separator label="Maternal Records" />
+
+            <div className={sectionCls}>
+                <ProfileSection
+                    title="Mother's Health Record"
+                    person={profiles.mother}
+                    updateField={(f, v) => updatePersonField('mother', f, v)}
+                    isLoading={isSaving}
+                />
+            </div>
+
+            <Separator label="Ancestral Records" />
+
+            <div className={`${sectionCls} mb-6`}>
+                <ProfileSection
+                    title="Grandfather's Health Record"
+                    person={profiles.grandfather}
+                    updateField={(f, v) => updatePersonField('grandfather', f, v)}
+                    isLoading={isSaving}
+                />
+            </div>
+
+            <div className={sectionCls}>
+                <ProfileSection
+                    title="Grandmother's Health Record"
+                    person={profiles.grandmother}
+                    updateField={(f, v) => updatePersonField('grandmother', f, v)}
+                    isLoading={isSaving}
+                />
             </div>
 
             {/* Bottom Actions */}
-            <div className="flex items-center justify-between pb-4">
+            <div className="flex items-center justify-between pt-6 border-t border-gray-100">
                 <button
                     onClick={handleLogout}
-                    className="px-6 py-3 rounded-xl border border-gray-200 text-[0.9rem] font-semibold text-[#111827] hover:bg-gray-50 transition-colors cursor-pointer"
+                    className="px-6 py-3 rounded-xl border border-gray-200 text-[0.9rem] font-semibold text-[#111827] hover:bg-white transition-colors cursor-pointer"
                 >
-                    Logout
+                    Sign Out
                 </button>
                 <button
                     onClick={handleUpdateProfile}
                     disabled={isSaving}
-                    className="flex items-center gap-2 px-8 py-3 bg-[#00d900] hover:bg-[#00c000] text-black font-bold text-[0.9rem] rounded-xl shadow-[0_4px_14px_rgba(0,217,0,0.25)] transition-all cursor-pointer disabled:opacity-75 disabled:cursor-wait"
+                    className="flex items-center gap-2 px-8 py-3 bg-[#00d900] hover:bg-[#00c000] text-black font-bold text-[0.9rem] rounded-xl shadow-[0_4px_14px_rgba(0_217_0_/_0.25)] transition-all cursor-pointer disabled:opacity-75 disabled:cursor-wait"
                 >
                     {isSaving ? <Loader2 size={16} className="animate-spin" /> : null}
-                    {isSaving ? 'Updating...' : 'Update Profile'}
+                    {isSaving ? 'Saving...' : 'Save All Changes'}
                 </button>
             </div>
+
         </motion.div>
     );
 }
+
+const Separator = ({ label }) => (
+    <div className="relative flex items-center py-2 px-4">
+        <div className="flex-grow border-t border-gray-200"></div>
+        <span className="flex-shrink mx-4 text-[0.7rem] font-bold uppercase tracking-[0.15em] text-gray-400">{label}</span>
+        <div className="flex-grow border-t border-gray-200"></div>
+    </div>
+);
+
+const ProfileSection = ({ title, person, isUser, updateField, isLoading }) => {
+    return (
+        <div className="space-y-10">
+            <div className="flex items-center gap-4 mb-2">
+                <div className="p-2.5 rounded-xl bg-[#f0fdf4] text-[#00d900]">
+                    <Activity size={22} />
+                </div>
+                <h2 className="font-extrabold text-[1.4rem] text-[#111827] tracking-tight">{title}</h2>
+            </div>
+
+            <div className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-2 gap-6">
+                        <InputGroup
+                            icon={Calendar} label="Age" value={person.age}
+                            onChange={(v) => updateField('age', v)} placeholder="Age" type="number" disabled={isLoading}
+                        />
+                        <div className="flex flex-col">
+                            <label className="block text-[0.85rem] font-bold text-[#111827] mb-2 px-1">Gender</label>
+                            <select
+                                value={person.gender} onChange={(e) => updateField('gender', e.target.value)}
+                                className="w-full px-4 py-[0.8rem] border border-gray-100 rounded-xl text-[1rem] transition-all bg-[#f9fafb] text-[#111827] focus:outline-none focus:border-[#00d900] focus:bg-white focus:ring-[4px] focus:ring-[rgba(0_217_0_/_0.08)] cursor-pointer font-medium"
+                                disabled={isLoading}
+                            >
+                                <option value="1">Female</option>
+                                <option value="2">Male</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-6">
+                        <InputGroup
+                            icon={Ruler} label="Height (cm)" value={person.height}
+                            onChange={(v) => updateField('height', v)} placeholder="H" type="number" disabled={isLoading}
+                        />
+                        <InputGroup
+                            icon={Scale} label="Weight (kg)" value={person.weight}
+                            onChange={(v) => updateField('weight', v)} placeholder="W" type="number" disabled={isLoading}
+                        />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-2 gap-6">
+                        <InputGroup
+                            icon={Heart} label="Systolic BP" value={person.apHi}
+                            onChange={(v) => updateField('apHi', v)} placeholder="Hi" type="number" disabled={isLoading}
+                        />
+                        <InputGroup
+                            icon={Heart} label="Diastolic BP" value={person.apLo}
+                            onChange={(v) => updateField('apLo', v)} placeholder="Lo" type="number" disabled={isLoading}
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 gap-6">
+                        <InputGroup
+                            icon={Activity} label="Cholesterol" value={person.cholesterol}
+                            onChange={(v) => updateField('cholesterol', v)} placeholder="mg/dL" type="number" disabled={isLoading}
+                        />
+                        <InputGroup
+                            icon={Activity} label="Glucose" value={person.glucose}
+                            onChange={(v) => updateField('glucose', v)} placeholder="mg/dL" type="number" disabled={isLoading}
+                        />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <label className="block text-[0.85rem] font-bold text-[#111827] mb-3 px-1">Routine Activity</label>
+                        <div className="flex gap-4">
+                            <button
+                                type="button"
+                                onClick={() => updateField('active', true)}
+                                className={`flex-1 py-3.5 rounded-xl font-bold transition-all border-2 ${person.active ? 'bg-[#00d900]/10 border-[#00d900] text-[#00a000]' : 'bg-[#f9fafb] border-gray-100 text-gray-400 opacity-60'}`}
+                            >
+                                Active
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => updateField('active', false)}
+                                className={`flex-1 py-3.5 rounded-xl font-bold transition-all border-2 ${!person.active ? 'bg-red-50 border-red-200 text-red-500' : 'bg-[#f9fafb] border-gray-100 text-gray-400 opacity-60'}`}
+                            >
+                                Sedentary
+                            </button>
+                        </div>
+                    </div>
+                    <InputGroup
+                        icon={AlertCircle} label="Allergies" value={person.allergies}
+                        onChange={(v) => updateField('allergies', v)} placeholder="e.g. Peanuts, Shellfish" disabled={isLoading}
+                    />
+                </div>
+
+                {isUser && (
+                    <div className="pt-6">
+                        <div className="flex flex-col">
+                            <label className="block text-[0.85rem] font-bold text-[#111827] mb-2 px-1 flex items-center gap-2">
+                                <Target size={18} className="text-[#00d900]" /> Your Primary Goal
+                            </label>
+                            <select
+                                value={person.goal} onChange={(e) => updateField('goal', e.target.value)}
+                                className="w-full px-4 py-[0.8rem] border border-gray-100 rounded-xl text-[1rem] transition-all bg-[#f9fafb] text-[#111827] focus:outline-none focus:border-[#00d900] focus:bg-white focus:ring-[4px] focus:ring-[rgba(0_217_0_/_0.08)] cursor-pointer font-bold"
+                                disabled={isLoading}
+                            >
+                                <option value="" disabled>Select your goal...</option>
+                                <option value="weight_loss">Weight Loss</option>
+                                <option value="muscle_gain">Muscle Gain</option>
+                                <option value="maintenance">Maintenance</option>
+                            </select>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+const InputGroup = ({ icon: Icon, label, value, onChange, placeholder, type = "text", disabled }) => (
+    <div className="flex flex-col w-full">
+        <label className="block text-[0.85rem] font-bold text-[#111827] mb-2 px-1">{label}</label>
+        <div className="relative flex items-center group">
+            <Icon className="absolute left-4 text-gray-400 group-focus-within:text-[#00d900] transition-colors" size={20} />
+            <input
+                type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} disabled={disabled}
+                className="w-full pl-12 pr-4 py-[0.8rem] border border-gray-100 rounded-xl text-[1rem] transition-all bg-[#f9fafb] placeholder-gray-400 focus:outline-none focus:border-[#00d900] focus:bg-white focus:ring-[4px] focus:ring-[rgba(0_217_0_/_0.08)] font-medium"
+            />
+        </div>
+    </div>
+);

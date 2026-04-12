@@ -6,14 +6,15 @@ import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 
 const QUICK_ADD_ITEMS = [
-    { name: 'Boiled Egg', info: '78 kcal • 6g protein', macros: { calories: 78, protein: 6, carbs: 1, fats: 5 } },
-    { name: 'Oatmeal', info: '150 kcal • 5g protein', macros: { calories: 150, protein: 5, carbs: 27, fats: 3 } },
-    { name: 'Chicken Breast', info: '165 kcal • 31g protein', macros: { calories: 165, protein: 31, carbs: 0, fats: 4 } },
-    { name: 'Protein Shake', info: '120 kcal • 24g protein', macros: { calories: 120, protein: 24, carbs: 3, fats: 1 } }
+    { name: 'Idly', info: '58 kcal • 2g protein', macros: { calories: 58, protein: 2, carbs: 12, fats: 0 } },
+    { name: 'Dosa', info: '165 kcal • 4g protein', macros: { calories: 165, protein: 4, carbs: 28, fats: 4 } },
+    { name: 'Samosa', info: '262 kcal • 5g protein', macros: { calories: 262, protein: 5, carbs: 31, fats: 13 } },
+    { name: 'Boiled Egg', info: '155 kcal • 13g protein', macros: { calories: 155, protein: 13, carbs: 1, fats: 11 } }
 ];
 
 export default function LogMeal() {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const getIstDate = () => {
         return new Intl.DateTimeFormat('en-CA', {
             timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit'
@@ -93,7 +94,7 @@ export default function LogMeal() {
             <div className="flex flex-col lg:flex-row gap-8 items-start">
 
                 {/* Form Section */}
-                <div className="flex-1 w-full bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.02)] border border-[#f3f4f6] p-8">
+                <div className="flex-1 w-full bg-white rounded-2xl shadow-[0_2px_12px_rgba(0_0_0_/_0.02)] border border-[#f3f4f6] p-8">
 
                     <div className="flex flex-col gap-6">
 
@@ -181,7 +182,7 @@ export default function LogMeal() {
                         <button
                             onClick={handleSave}
                             disabled={isSaving}
-                            className="w-full mt-4 py-4 bg-[#00d900] hover:bg-[#00c000] disabled:bg-[#00d900]/60 text-black font-bold rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-[0_4px_14px_rgba(0,217,0,0.25)] transition-all"
+                            className="w-full mt-4 py-4 bg-[#00d900] hover:bg-[#00c000] disabled:bg-[#00d900]/60 text-black font-bold rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-[0_4px_14px_rgba(0_217_0_/_0.25)] transition-all"
                         >
                             {isSaving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} className="fill-black" />}
                             {isSaving ? 'Saving...' : 'Save Meal'}
@@ -191,7 +192,7 @@ export default function LogMeal() {
                 </div>
 
                 {/* Quick Add Section */}
-                <div className="w-full lg:w-[320px] bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.02)] border border-[#f3f4f6] p-6 lg:p-8 shrink-0">
+                <div className="w-full lg:w-[320px] bg-white rounded-2xl shadow-[0_2px_12px_rgba(0_0_0_/_0.02)] border border-[#f3f4f6] p-6 lg:p-8 shrink-0">
                     <div className="flex items-center gap-2 mb-6">
                         <Zap className="text-[#00d900] fill-[#00d900]" size={20} />
                         <h2 className="text-lg font-bold">Quick Add</h2>

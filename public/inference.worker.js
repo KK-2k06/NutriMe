@@ -46,7 +46,7 @@ function preprocess(imageData) {
 function postprocess(output, imgWidth, imgHeight) {
     const data = output.data;
     const numDetections = 8400;
-    const numClasses = 7; // apple, banana, boiled_egg, bread, fried_egg, milk, orange
+    const numClasses = 15; // apple, banana, boiled_egg, bread, fried_egg, milk, orange, AlooGobi, GulabJamun, Samosa, Ven Pongal, Uzhuntha vadai, Paneer briyani, Dosa, Idly
     const scaleX = imgWidth / INPUT_SIZE;
     const scaleY = imgHeight / INPUT_SIZE;
     const boxes = [];

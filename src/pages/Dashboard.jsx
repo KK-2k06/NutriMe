@@ -10,8 +10,8 @@ import { saveChatMessage, fetchRecentChats } from '../lib/historyApi';
 // ─── Detection Config ────────────────────────────────────
 const INPUT_SIZE = 640;
 const LERP_SPEED = 0.35;
-const CLASS_NAMES = ['apple', 'banana', 'boiled_egg', 'bread', 'fried_egg', 'milk', 'orange'];
-const COLORS = ['#FF3B30', '#FF9500', '#FFCC00', '#34C759', '#007AFF', '#5856D6', '#AF52DE'];
+const CLASS_NAMES = ['apple', 'banana', 'boiled_egg', 'bread', 'fried_egg', 'milk', 'orange', 'AlooGobi', 'GulabJamun', 'Samosa', 'Ven Pongal', 'Uzhuntha vadai', 'Paneer briyani', 'Dosa', 'Idly'];
+const COLORS = ['#FF3B30', '#FF9500', '#FFCC00', '#34C759', '#007AFF', '#5856D6', '#AF52DE', '#FF6B35', '#E91E8C', '#00BCD4', '#8BC34A', '#FF5722', '#9C27B0', '#F9A825', '#26A69A'];
 
 function captureFrame(offCanvas, video) {
     const ctx = offCanvas.getContext('2d', { willReadFrequently: true });
@@ -57,16 +57,23 @@ function drawBoxes(ctx, boxes) {
     }
 }
 
-// ─── BMI helpers ─────────────────────────────────────────
+// ─── BMI & Cardio helpers ────────────────────────────────
 function calculateBMI(h, w) { return h && w ? w / ((h / 100) ** 2) : null; }
 function getBMICategory(bmi) {
-    if (bmi < 18.5) return { label: 'Underweight', color: '#60a5fa' };
-    if (bmi < 25) return { label: 'Normal Weight', color: '#00d900' };
-    if (bmi < 30) return { label: 'Overweight', color: '#fbbf24' };
-    return { label: 'Obese', color: '#f87171' };
+    if (bmi < 18.5) return { label: 'UW', color: '#ef4444', fullName: 'Underweight' };
+    if (bmi < 25) return { label: 'NW / HW', color: '#22c55e', fullName: 'Healthy Weight' };
+    if (bmi < 30) return { label: 'OW', color: '#fbbf24', fullName: 'Overweight' };
+    return { label: 'OB', color: '#ef4444', fullName: 'Obese' };
 }
 function getBMIMarkerPosition(bmi) {
+    // Range 15 to 35
     return ((Math.max(15, Math.min(35, bmi)) - 15) / 20) * 100;
+}
+
+function getCardioRiskInfo(prob) {
+    if (prob < 0.3) return { label: 'Low Risk', color: '#00d900' };
+    if (prob < 0.6) return { label: 'Moderate', color: '#fbbf24' };
+    return { label: 'High Risk', color: '#f87171' };
 }
 
 // ─── Component ───────────────────────────────────────────
@@ -125,7 +132,6 @@ export default function Dashboard() {
 
         const fetchDailyCaloriesAndHistory = async () => {
             if (!user) return;
-            // Get today and 3 days ago for history range
             const tz = 'Asia/Kolkata';
             const today = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date());
 
@@ -142,7 +148,6 @@ export default function Dashboard() {
 
             if (data) {
                 setMealHistory(data);
-                // Calculate today's total calories
                 const todaysMeals = data.filter(m => m.date === today);
                 const total = todaysMeals.reduce((acc, curr) => acc + (curr.kcal || 0), 0);
                 setDailyCalories(prev => ({ ...prev, calories: total }));
@@ -156,7 +161,7 @@ export default function Dashboard() {
         if (!user || !isChatOpen) return;
 
         const initChat = async () => {
-            const hist = await fetchRecentChats(user.id, 'dashboard', 4); // User requested 3-4 messages limit
+            const hist = await fetchRecentChats(user.id, 'dashboard', 4);
             if (hist && hist.length > 0) {
                 setMessages(hist);
             } else {
@@ -165,7 +170,6 @@ export default function Dashboard() {
         };
 
         if (messages.length === 0) initChat();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isChatOpen, user]);
 
     // Sync chat scroll
@@ -188,7 +192,7 @@ export default function Dashboard() {
                 [...messages, userMsg],
                 userProfile,
                 mealHistory,
-                null // General dashboard mode (uses historySection)
+                null
             );
 
             setMessages(prev => [...prev, { role: 'ai', content: aiResponse }]);
@@ -273,7 +277,6 @@ export default function Dashboard() {
     // ─── Capture handler ─────────────────────────────────
     const handleCapture = useCallback(() => {
         if (cameraActive && stable) {
-            // Zero-copy: grab current frame as data URL
             const video = videoRef.current;
             if (!video) return;
             const c = document.createElement('canvas');
@@ -283,7 +286,6 @@ export default function Dashboard() {
             ctx.drawImage(video, 0, 0);
             const imageDataUrl = c.toDataURL('image/jpeg', 0.92);
 
-            // Stop camera before navigating
             if (videoRef.current?.srcObject) {
                 videoRef.current.srcObject.getTracks().forEach(t => t.stop());
                 videoRef.current.srcObject = null;
@@ -297,7 +299,6 @@ export default function Dashboard() {
                 },
             });
         } else if (uploadedImage) {
-            // Lazy evaluation: navigate with raw image, no inference
             navigate('/analysis-result', {
                 state: {
                     mode: 'upload',
@@ -340,7 +341,6 @@ export default function Dashboard() {
         cameraActive ? stopCamera() : startCamera();
     }, [cameraActive, startCamera, stopCamera]);
 
-    // ─── Upload handler (no inference — lazy) ────────────
     const handleFileUpload = useCallback((e) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -350,7 +350,6 @@ export default function Dashboard() {
         reader.readAsDataURL(file);
     }, [stopCamera]);
 
-    // Cleanup on unmount
     useEffect(() => {
         return () => {
             if (videoRef.current?.srcObject) videoRef.current.srcObject.getTracks().forEach(t => t.stop());
@@ -358,8 +357,6 @@ export default function Dashboard() {
     }, []);
 
     const showPlaceholder = !cameraActive && !uploadedImage;
-
-    // Capture button enabled when camera is stable OR an image is uploaded
     const captureEnabled = (cameraActive && stable) || !!uploadedImage;
 
     return (
@@ -368,30 +365,21 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.3 }}
-            className="flex flex-col xl:flex-row gap-6 h-full max-w-[1400px] mx-auto"
+            className="flex flex-col xl:flex-row gap-6 max-w-[1400px] mx-auto"
         >
             {/* Left Col - Camera Feed Area */}
             <div className="flex-1 flex flex-col gap-6">
-                <div className="flex-1 bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.02)] border border-[#f3f4f6] flex flex-col relative overflow-hidden min-h-[500px]">
-
-                    {/* Reticle corners */}
+                <div className="flex-1 bg-white rounded-2xl shadow-[0_2px_12px_rgba(0_0_0_/_0.02)] border border-[#f3f4f6] flex flex-col relative overflow-hidden min-h-[500px]">
                     <div className="absolute top-6 left-6 w-8 h-8 border-t-2 border-l-2 border-[#00d900] opacity-80 z-30"></div>
                     <div className="absolute top-6 right-6 w-8 h-8 border-t-2 border-r-2 border-[#00d900] opacity-80 z-30"></div>
                     <div className="absolute bottom-6 left-6 w-8 h-8 border-b-2 border-l-2 border-[#00d900] opacity-80 z-30"></div>
                     <div className="absolute bottom-6 right-6 w-8 h-8 border-b-2 border-r-2 border-[#00d900] opacity-80 z-30"></div>
 
-                    {/* Grid background — placeholder only */}
                     {showPlaceholder && (
-                        <div
-                            className="absolute inset-0 z-0 opacity-40 pointer-events-none"
-                            style={{
-                                backgroundImage: 'linear-gradient(to right, #f3f4f6 1px, transparent 1px), linear-gradient(to bottom, #f3f4f6 1px, transparent 1px)',
-                                backgroundSize: '30px 30px'
-                            }}
-                        ></div>
+                        <div className="absolute inset-0 z-0 opacity-40 pointer-events-none"
+                            style={{ backgroundImage: 'linear-gradient(to right, #f3f4f6 1px, transparent 1px), linear-gradient(to bottom, #f3f4f6 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
                     )}
 
-                    {/* Placeholder */}
                     {showPlaceholder && (
                         <div className="flex-1 flex flex-col items-center justify-center text-gray-300 z-10 p-4">
                             <Video size={56} className="mb-4 text-[#d1d5db]" />
@@ -401,84 +389,34 @@ export default function Dashboard() {
                         </div>
                     )}
 
-                    {/* Live camera video */}
-                    <video
-                        ref={videoRef}
-                        playsInline muted
-                        className="absolute inset-0 w-full h-full object-cover z-10"
-                        style={{ transform: 'scaleX(-1)', display: cameraActive ? 'block' : 'none' }}
-                    />
-
-                    {/* Detection overlay canvas (camera mode) */}
-                    <canvas
-                        ref={overlayRef}
-                        className="absolute inset-0 w-full h-full pointer-events-none z-15"
-                        style={{ display: cameraActive ? 'block' : 'none' }}
-                    />
-
-                    {/* Off-screen canvas for frame capture */}
+                    <video ref={videoRef} playsInline muted className="absolute inset-0 w-full h-full object-cover z-10" style={{ transform: 'scaleX(-1)', display: cameraActive ? 'block' : 'none' }} />
+                    <canvas ref={overlayRef} className="absolute inset-0 w-full h-full pointer-events-none z-15" style={{ display: cameraActive ? 'block' : 'none' }} />
                     <canvas ref={offCanvasRef} width={INPUT_SIZE} height={INPUT_SIZE} style={{ display: 'none' }} />
+                    {uploadedImage && <img src={uploadedImage} alt="Uploaded" className="absolute inset-0 w-full h-full object-contain z-10 bg-black/5" />}
 
-                    {/* Uploaded image (no detection overlay — lazy) */}
-                    {uploadedImage && (
-                        <img
-                            src={uploadedImage}
-                            alt="Uploaded"
-                            className="absolute inset-0 w-full h-full object-contain z-10 bg-black/5"
-                        />
-                    )}
-
-                    {/* Detection / stability badge */}
                     {cameraActive && detections.length > 0 && (
-                        <div className={`absolute top-4 right-4 z-30 backdrop-blur-sm rounded-lg px-3 py-1.5 text-[0.75rem] font-semibold flex items-center gap-2 ${stable
-                            ? 'bg-[#00d900]/80 text-black'
-                            : 'bg-black/60 text-white'
-                            }`}>
-                            {stable ? (
-                                <><span className="w-2 h-2 rounded-full bg-black animate-pulse"></span> Ready to capture</>
-                            ) : (
-                                <><span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></span> Stabilizing...</>
-                            )}
+                        <div className={`absolute top-4 right-4 z-30 backdrop-blur-sm rounded-lg px-3 py-1.5 text-[0.75rem] font-semibold flex items-center gap-2 ${stable ? 'bg-[#00d900]/80 text-black' : 'bg-black/60 text-white'}`}>
+                            {stable ? <><span className="w-2 h-2 rounded-full bg-black animate-pulse"></span> Ready to capture</> : <><span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></span> Stabilizing...</>}
                         </div>
                     )}
 
-                    {/* Capture button */}
                     <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20">
-                        <button
-                            onClick={handleCapture}
-                            disabled={!captureEnabled}
-                            className={`w-14 h-14 rounded-full border-[3px] flex items-center justify-center shadow-md transition-all cursor-pointer ${captureEnabled
-                                ? 'bg-white border-[#00d900] hover:scale-110 hover:shadow-[0_0_20px_rgba(0,217,0,0.4)]'
-                                : 'bg-gray-100 border-gray-300 opacity-50 cursor-not-allowed'
-                                }`}
-                            style={captureEnabled && cameraActive ? { animation: 'pulse-glow 2s ease-in-out infinite' } : {}}
-                        >
+                        <button onClick={handleCapture} disabled={!captureEnabled}
+                            className={`w-14 h-14 rounded-full border-[3px] flex items-center justify-center shadow-md transition-all cursor-pointer ${captureEnabled ? 'bg-white border-[#00d900] hover:scale-110' : 'bg-gray-100 border-gray-300 opacity-50 cursor-not-allowed'}`}
+                            style={captureEnabled && cameraActive ? { animation: 'pulse-glow 2s ease-in-out infinite' } : {}}>
                             <CameraIcon size={20} className={captureEnabled ? 'text-[#111827] fill-[#111827]' : 'text-gray-400 fill-gray-400'} />
                         </button>
                     </div>
                 </div>
 
-                {/* Hidden file input */}
                 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
 
                 <div className="flex items-center justify-center gap-4">
-                    <button
-                        onClick={handleCameraToggle}
-                        className={`px-6 py-3.5 font-bold rounded-xl flex items-center gap-2.5 cursor-pointer transition-all ${cameraActive
-                            ? 'bg-red-500 hover:bg-red-600 text-white shadow-[0_4px_12px_rgba(239,68,68,0.2)]'
-                            : 'bg-[#00d900] hover:bg-[#00c000] text-black shadow-[0_4px_12px_rgba(0,217,0,0.2)]'
-                            }`}
-                    >
-                        {cameraActive ? (
-                            <><VideoOff size={18} /> Stop Camera</>
-                        ) : (
-                            <><span className="w-[18px] h-[18px] border-[2px] border-black rounded-[4px] relative flex items-center justify-center border-dashed"></span> Start Camera</>
-                        )}
+                    <button onClick={handleCameraToggle}
+                        className={`px-6 py-3.5 font-bold rounded-xl flex items-center gap-2.5 cursor-pointer transition-all ${cameraActive ? 'bg-red-500 hover:bg-red-600 text-white shadow-[0_4px_12px_rgba(239_68_68_/_0.2)]' : 'bg-[#00d900] hover:bg-[#00c000] text-black shadow-[0_4px_12px_rgba(0_217_0_/_0.2)]'}`}>
+                        {cameraActive ? <><VideoOff size={18} /> Stop Camera</> : <><span className="w-[18px] h-[18px] border-[2px] border-black rounded-[4px] relative flex items-center justify-center border-dashed"></span> Start Camera</>}
                     </button>
-                    <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="px-6 py-3.5 bg-white hover:bg-[#f9fafb] text-[#111827] font-bold rounded-xl flex items-center gap-2.5 cursor-pointer border border-[#e5e7eb] shadow-sm transition-colors"
-                    >
+                    <button onClick={() => fileInputRef.current?.click()} className="px-6 py-3.5 bg-white hover:bg-[#f9fafb] text-[#111827] font-bold rounded-xl flex items-center gap-2.5 cursor-pointer border border-[#e5e7eb] shadow-sm transition-colors">
                         <Upload size={18} /> Upload Image
                     </button>
                 </div>
@@ -488,7 +426,7 @@ export default function Dashboard() {
             <div className="w-full xl:w-[320px] shrink-0 flex flex-col gap-6">
 
                 {/* Calories Widget */}
-                <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.02)] border border-[#f3f4f6] p-6">
+                <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0_0_0_/_0.02)] border border-[#f3f4f6] p-6">
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="font-bold text-[1.1rem]">Calories</h3>
                         <Flame size={18} className="text-[#00d900]" fill="currentColor" strokeWidth={0} />
@@ -497,23 +435,11 @@ export default function Dashboard() {
                         <div className="relative w-44 h-44 flex items-center justify-center mb-6">
                             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                                 <circle cx="50" cy="50" r="40" stroke="#f3f4f6" strokeWidth="8" fill="none" />
-                                <circle
-                                    cx="50"
-                                    cy="50"
-                                    r="40"
-                                    stroke="#00d900"
-                                    strokeWidth="8"
-                                    fill="none"
-                                    strokeDasharray="251.2"
-                                    strokeDashoffset={Math.max(0, 251.2 - (251.2 * (dailyCalories.calories / dailyCalories.goal)))}
-                                    strokeLinecap="round"
-                                    className="transition-all duration-1000 ease-out"
-                                />
+                                <circle cx="50" cy="50" r="40" stroke="#00d900" strokeWidth="8" fill="none" strokeDasharray="251.2"
+                                    strokeDashoffset={Math.max(0, 251.2 - (251.2 * (dailyCalories.calories / dailyCalories.goal)))} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
                             </svg>
                             <div className="absolute flex flex-col items-center justify-center text-center">
-                                <span className="font-bold text-[2rem] leading-none mb-1 text-[#111827]">
-                                    {dailyCalories.calories.toLocaleString()}
-                                </span>
+                                <span className="font-bold text-[2rem] leading-none mb-1 text-[#111827]">{dailyCalories.calories.toLocaleString()}</span>
                                 <span className="text-[0.75rem] text-[#9ca3af] font-bold">/ {dailyCalories.goal.toLocaleString()} kcal</span>
                             </div>
                         </div>
@@ -524,151 +450,97 @@ export default function Dashboard() {
                 </div>
 
                 {/* BMI Widget */}
-                <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.02)] border border-[#f3f4f6] p-6">
+                <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0_0_0_/_0.02)] border border-[#f3f4f6] p-6">
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="font-bold text-[1.1rem]">BMI Overview</h3>
-                        <div className="bg-[#00d900] w-[18px] h-[18px] rounded-sm flex items-center justify-center">
-                            <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                        </div>
+                        <div className="bg-[#00d900] w-[18px] h-[18px] rounded-sm flex items-center justify-center"><div className="w-1.5 h-1.5 bg-white rounded-full"></div></div>
                     </div>
-
                     {loadingProfile ? (
-                        <div className="flex flex-col items-center mb-8 animate-pulse">
-                            <div className="w-20 h-10 bg-gray-100 rounded-lg mb-3"></div>
-                            <div className="w-28 h-6 bg-gray-100 rounded"></div>
-                        </div>
+                        <div className="flex flex-col items-center mb-8 animate-pulse"><div className="w-20 h-10 bg-gray-100 rounded-lg mb-3"></div><div className="w-28 h-6 bg-gray-100 rounded"></div></div>
                     ) : bmi !== null ? (
                         <>
                             <div className="flex flex-col items-center mb-8">
                                 <span className="font-extrabold text-[2.5rem] leading-none mb-3 text-[#111827]">{bmi.toFixed(1)}</span>
-                                <div className="px-3 py-1 text-[0.7rem] font-bold rounded-[4px] uppercase tracking-wider"
-                                    style={{ backgroundColor: `${bmiCategory.color}1a`, color: bmiCategory.color }}>
-                                    {bmiCategory.label}
+                                <div 
+                                    className="px-4 py-1.5 text-[0.75rem] font-bold rounded-lg uppercase tracking-wider shadow-sm flex flex-col items-center gap-0.5" 
+                                    style={{ backgroundColor: `${bmiCategory.color}15`, color: bmiCategory.color, border: `1px solid ${bmiCategory.color}30` }}
+                                >
+                                    <span>{bmiCategory.label}</span>
+                                    <span className="text-[0.6rem] opacity-70 font-medium normal-case">{bmiCategory.fullName}</span>
                                 </div>
                             </div>
-                            <div className="w-full relative px-[2px] mb-2 mt-4">
-                                <div className="flex justify-between text-[0.6rem] text-[#9ca3af] font-bold mb-2">
-                                    <span>18.5</span><span className="pl-6">25.0</span><span>30.0</span>
+                             <div className="w-full mb-2 mt-4">
+                                <div className="flex justify-between text-[0.65rem] text-[#9ca3af] font-black mb-2.5 px-2">
+                                    <span>UW</span>
+                                    <span>NW</span>
+                                    <span>OW</span>
+                                    <span>OB</span>
                                 </div>
-                                <div className="h-2.5 w-full rounded-full flex overflow-hidden">
-                                    <div className="flex-1 bg-[#60a5fa]"></div>
-                                    <div className="flex-[1.5] bg-[#00d900]"></div>
-                                    <div className="flex-1 bg-[#fbbf24]"></div>
-                                    <div className="flex-[1.2] bg-[#f87171]"></div>
-                                </div>
-                                <div className="absolute h-5 w-1 bg-white shadow-sm top-[14px] z-10 rounded-sm outline outline-1"
-                                    style={{ left: `${getBMIMarkerPosition(bmi)}%`, outlineColor: bmiCategory.color }}></div>
-                                <div className="flex justify-between text-[0.65rem] text-[#9ca3af] font-semibold mt-2 px-1">
-                                    <span>Under</span><span className="pr-4">Normal</span><span className="pr-2">Over</span><span>Obese</span>
+                                <div className="relative px-[2px]">
+                                    <div 
+                                        className="h-3 w-full rounded-full shadow-inner" 
+                                        style={{ 
+                                            background: 'linear-gradient(to right, #ef4444 0%, #fbbf24 17.5%, #22c55e 35%, #22c55e 45%, #fbbf24 60%, #ef4444 85%)' 
+                                        }}
+                                    ></div>
+                                    <div 
+                                        className="absolute top-1/2 h-7 w-1.5 bg-white shadow-md z-10 rounded-full border-2 transition-all duration-500 ease-out" 
+                                        style={{ 
+                                            left: `${getBMIMarkerPosition(bmi)}%`, 
+                                            transform: 'translate(-50%, -50%)', 
+                                            borderColor: bmiCategory.color 
+                                        }}
+                                    ></div>
                                 </div>
                             </div>
                         </>
                     ) : (
-                        <div className="flex flex-col items-center mb-4 text-center">
-                            <span className="text-[2rem] font-extrabold text-gray-300 mb-2">--</span>
-                            <p className="text-[0.8rem] text-gray-400">Complete your profile to see your BMI</p>
-                        </div>
+                        <div className="flex flex-col items-center mb-4 text-center"><span className="text-[2rem] font-extrabold text-gray-300 mb-2">--</span><p className="text-[0.8rem] text-gray-400">Complete your profile to see your BMI</p></div>
                     )}
                 </div>
-
             </div>
 
             {/* Global AI Chat Bubble & Panel */}
             <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end pointer-events-none">
-
                 <AnimatePresence>
                     {isChatOpen && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                            transition={{ duration: 0.2 }}
-                            className="bg-white rounded-2xl shadow-xl border border-gray-200 w-[350px] sm:w-[400px] h-[500px] mb-4 flex flex-col overflow-hidden pointer-events-auto"
-                        >
-                            {/* Header */}
+                        <motion.div initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.95 }} transition={{ duration: 0.2 }}
+                            className="bg-white rounded-2xl shadow-xl border border-gray-200 w-[350px] sm:w-[400px] h-[500px] mb-4 flex flex-col overflow-hidden pointer-events-auto">
                             <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-gray-50/50">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-[#00d900]/20 flex items-center justify-center">
-                                        <Bot size={16} className="text-[#00a000]" />
-                                    </div>
-                                    <div>
-                                        <p className="font-bold text-[0.95rem] text-[#111827]">AI Nutritionist</p>
-                                        <div className="flex items-center gap-1.5 mt-0.5">
-                                            <span className="w-2 h-2 rounded-full bg-[#00d900]" />
-                                            <span className="text-[0.65rem] text-[#00a000] font-semibold tracking-wide uppercase">Online</span>
-                                        </div>
-                                    </div>
+                                    <div className="w-8 h-8 rounded-full bg-[#00d900]/20 flex items-center justify-center"><Bot size={16} className="text-[#00a000]" /></div>
+                                    <div><p className="font-bold text-[0.95rem] text-[#111827]">AI Nutritionist</p><div className="flex items-center gap-1.5 mt-0.5"><span className="w-2 h-2 rounded-full bg-[#00d900]" /><span className="text-[0.65rem] text-[#00a000] font-semibold tracking-wide uppercase">Online</span></div></div>
                                 </div>
-                                <button onClick={() => setIsChatOpen(false)} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
-                                    <X size={18} className="text-gray-500" />
-                                </button>
+                                <button onClick={() => setIsChatOpen(false)} className="p-2 hover:bg-gray-200 rounded-full transition-colors"><X size={18} className="text-gray-500" /></button>
                             </div>
-
-                            {/* Messages */}
                             <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-white/50 scrollbar-hide">
                                 {messages.map((msg, i) => (
-                                    <motion.div
-                                        key={i}
-                                        initial={{ opacity: 0, y: 4 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
-                                    >
+                                    <motion.div key={i} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                                         <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${msg.role === 'ai' ? 'bg-[#00d900]/20 text-[#00a000]' : 'bg-gray-200 text-gray-500'}`}>
                                             {msg.role === 'ai' ? <Bot size={15} /> : <div className="w-full h-full rounded-full overflow-hidden"><img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.full_name || user?.email || 'User')}&background=e5e7eb&color=6b7280`} alt="User" className="w-full h-full object-cover" /></div>}
                                         </div>
-                                        <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-[0.85rem] leading-relaxed whitespace-pre-wrap ${msg.role === 'ai' ? 'bg-gray-50 border border-gray-100 text-gray-800' : 'bg-[#e6ffed] border border-[#b3f0c0] text-gray-900'}`}>
-                                            {msg.content}
-                                        </div>
+                                        <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-[0.85rem] leading-relaxed whitespace-pre-wrap ${msg.role === 'ai' ? 'bg-gray-50 border border-gray-100 text-gray-800' : 'bg-[#e6ffed] border border-[#b3f0c0] text-gray-900'}`}>{msg.content}</div>
                                     </motion.div>
                                 ))}
-                                {isTyping && (
-                                    <div className="flex gap-3">
-                                        <div className="shrink-0 w-8 h-8 rounded-full bg-[#00d900]/20 flex items-center justify-center"><Bot size={15} className="text-[#00a000]" /></div>
-                                        <div className="bg-gray-50 border border-gray-100 text-gray-800 rounded-2xl flex items-center px-4 py-3">
-                                            <Loader2 size={16} className="animate-spin text-[#00a000]" />
-                                        </div>
-                                    </div>
-                                )}
+                                {isTyping && <div className="flex gap-3"><div className="shrink-0 w-8 h-8 rounded-full bg-[#00d900]/20 flex items-center justify-center"><Bot size={15} className="text-[#00a000]" /></div><div className="bg-gray-50 border border-gray-100 text-gray-800 rounded-2xl flex items-center px-4 py-3"><Loader2 size={16} className="animate-spin text-[#00a000]" /></div></div>}
                                 <div ref={chatEndRef} />
                             </div>
-
-                            {/* Input */}
                             <div className="p-3 border-t border-gray-100 bg-white">
                                 <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus-within:border-[#00d900] focus-within:ring-1 focus-within:ring-[#00d900] transition-all">
-                                    <input
-                                        type="text"
-                                        placeholder="Ask your AI Nutritionist..."
-                                        value={input}
-                                        onChange={e => setInput(e.target.value)}
-                                        onKeyDown={e => e.key === 'Enter' && sendMessage()}
-                                        className="flex-1 bg-transparent text-[0.85rem] text-gray-800 placeholder-gray-400 focus:outline-none min-w-0"
-                                    />
-                                    <button
-                                        onClick={sendMessage}
-                                        className="w-8 h-8 rounded-full bg-[#00d900] hover:bg-[#00c000] flex items-center justify-center transition-colors shrink-0 shadow-sm"
-                                    >
-                                        <Send size={13} className="text-black" />
-                                    </button>
+                                    <input type="text" placeholder="Ask your AI Nutritionist..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} className="flex-1 bg-transparent text-[0.85rem] text-gray-800 placeholder-gray-400 focus:outline-none min-w-0" />
+                                    <button onClick={sendMessage} className="w-8 h-8 rounded-full bg-[#00d900] hover:bg-[#00c000] flex items-center justify-center transition-colors shrink-0 shadow-sm"><Send size={13} className="text-black" /></button>
                                 </div>
                             </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
-
-                {/* Floating Toggle Button */}
-                <button
-                    onClick={() => setIsChatOpen(!isChatOpen)}
-                    className="w-14 h-14 bg-[#00d900] hover:bg-[#00c000] rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 pointer-events-auto"
-                >
-                    <MessageSquare size={24} className="text-black" />
-                </button>
+                <button onClick={() => setIsChatOpen(!isChatOpen)} className="w-14 h-14 bg-[#00d900] hover:bg-[#00c000] rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 pointer-events-auto mt-4"><MessageSquare size={24} className="text-black" /></button>
             </div>
 
-            {/* Pulse glow animation for capture button */}
             <style>{`
                 @keyframes pulse-glow {
-                    0%, 100% { box-shadow: 0 0 8px rgba(0,217,0,0.3); }
-                    50% { box-shadow: 0 0 24px rgba(0,217,0,0.6); }
+                    0%, 100% { box-shadow: 0 0 8px rgba(0, 217, 0, 0.3); }
+                    50% { box-shadow: 0 0 24px rgba(0, 217, 0, 0.6); }
                 }
             `}</style>
         </motion.div>

@@ -8,9 +8,17 @@ const CLASS_TO_USDA_QUERY = {
     fried_egg: 'egg, fried',
     milk: 'milk, whole',
     orange: 'orange, raw',
+    AlooGobi: 'aloo gobi potato cauliflower',
+    GulabJamun: 'gulab jamun indian sweet',
+    Samosa: 'samosa fried pastry',
+    'Ven Pongal': 'pongal rice lentil dish',
+    'Uzhuntha vadai': 'medu vada urad dal',
+    'Paneer briyani': 'paneer biryani rice',
+    Dosa: 'dosa fermented crepe',
+    Idly: 'idli steamed rice cake',
 };
 
-const CLASS_NAMES_ARRAY = ['apple', 'banana', 'boiled_egg', 'bread', 'fried_egg', 'milk', 'orange'];
+const CLASS_NAMES_ARRAY = ['apple', 'banana', 'boiled_egg', 'bread', 'fried_egg', 'milk', 'orange', 'AlooGobi', 'GulabJamun', 'Samosa', 'Ven Pongal', 'Uzhuntha vadai', 'Paneer briyani', 'Dosa', 'Idly'];
 
 export async function fetchNutritionForDetection(detection, imgWidth, imgHeight) {
     const className = CLASS_NAMES_ARRAY[detection.classId];
@@ -92,6 +100,14 @@ export async function fetchNutritionForDetection(detection, imgWidth, imgHeight)
             fried_egg: { kcal: 196, p: 14, f: 15, c: 0.8 },
             milk: { kcal: 42, p: 3.4, f: 1, c: 5 },
             orange: { kcal: 47, p: 0.9, f: 0.1, c: 12 },
+            AlooGobi: { kcal: 120, p: 3.5, f: 5, c: 16 },
+            GulabJamun: { kcal: 387, p: 5, f: 15, c: 57 },
+            Samosa: { kcal: 262, p: 5, f: 13, c: 31 },
+            'Ven Pongal': { kcal: 180, p: 6, f: 4, c: 30 },
+            'Uzhuntha vadai': { kcal: 230, p: 8, f: 10, c: 28 },
+            'Paneer briyani': { kcal: 310, p: 12, f: 10, c: 42 },
+            Dosa: { kcal: 165, p: 4, f: 4, c: 28 },
+            Idly: { kcal: 58, p: 2, f: 0.4, c: 12 },
         };
         
         const fallback = fallbacks[className] || { kcal: 100, p: 5, f: 5, c: 10 };

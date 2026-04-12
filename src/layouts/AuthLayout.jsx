@@ -34,7 +34,7 @@ export default function AuthLayout() {
             {/* Right Form Panel */}
             <div className="w-full min-[900px]:w-1/2 shrink-0 flex items-center justify-center bg-[#f7f9f8] p-4 min-[900px]:p-8 min-h-[60vh] min-[900px]:min-h-screen overflow-hidden relative">
                 {/* Static White Form Container */}
-                <div className="bg-white rounded-[1.5rem] w-full max-w-[440px] shadow-[0_4px_20px_rgba(0,0,0,0.03)] h-[660px] relative overflow-hidden">
+                <div className="bg-white rounded-[1.5rem] w-full max-w-[440px] shadow-[0_4px_20px_rgba(0_0_0_/_0.03)] h-[660px] relative overflow-hidden">
                     <AnimatePresence>
                         {outlet ? React.cloneElement(outlet, { key: location.pathname }) : null}
                     </AnimatePresence>

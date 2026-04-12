@@ -10,8 +10,8 @@ import { saveChatMessage, fetchRecentChats } from '../lib/historyApi';
 
 // ─── Detection helpers (shared with Dashboard) ──────────
 const INPUT_SIZE = 640;
-const CLASS_NAMES = ['apple', 'banana', 'boiled_egg', 'bread', 'fried_egg', 'milk', 'orange'];
-const COLORS = ['#FF3B30', '#FF9500', '#FFCC00', '#34C759', '#007AFF', '#5856D6', '#AF52DE'];
+const CLASS_NAMES = ['apple', 'banana', 'boiled_egg', 'bread', 'fried_egg', 'milk', 'orange', 'AlooGobi', 'GulabJamun', 'Samosa', 'Ven Pongal', 'Uzhuntha vadai', 'Paneer briyani', 'Dosa', 'Idly'];
+const COLORS = ['#FF3B30', '#FF9500', '#FFCC00', '#34C759', '#007AFF', '#5856D6', '#AF52DE', '#FF6B35', '#E91E8C', '#00BCD4', '#8BC34A', '#FF5722', '#9C27B0', '#F9A825', '#26A69A'];
 
 function drawBoxes(ctx, boxes, imgW, imgH) {
     for (const b of boxes) {
@@ -157,14 +157,137 @@ export default function AnalysisResult() {
                 setIsTyping(true);
 
                 // Get User Profile safely
-                const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+                const { data: profile } = await supabase.rpc('secure_get_profile', { p_id: user.id });
+
+                let ctxUserRisk = null;
+                let ctxHereditaryRisk = null;
+
+                if (profile) {
+                    try {
+                        const family = profile.family_health_history || {};
+
+                        // Helper to strictly bypass empty profiles
+                        const formatMetrics = (p) => {
+                            if (!p) return null;
+                            // Only consider a profile "filled" if at least one real numeric
+                            // health metric has a value. Ignore 'active' (always bool) and
+                            // 'gender' (always has a default) since they are never truly empty.
+                            const meaningfulFields = ['age', 'height', 'weight', 'apHi', 'apLo', 'cholesterol', 'glucose'];
+                            const hasData = meaningfulFields.some(k => {
+                                const v = p[k];
+                                return v !== '' && v !== null && v !== undefined && !isNaN(parseFloat(v));
+                            });
+                            if (!hasData) return null;
+                            return {
+                                age_years: parseInt(p.age) || null,
+                                gender: parseInt(p.gender) || null,
+                                height: parseFloat(p.height) || null,
+                                weight: parseFloat(p.weight) || null,
+                                ap_hi: parseInt(p.apHi) || null,
+                                ap_lo: parseInt(p.apLo) || null,
+                                cholesterol_raw: parseFloat(p.cholesterol) || null,
+                                gluc_raw: parseFloat(p.glucose) || null,
+                                active: p.active ? 1 : 0
+                            };
+                        };
+
+                        const userMetrics = {
+                            age_years: parseInt(profile.age) || null,
+                            gender: parseInt(profile.gender) || null,
+                            height: parseFloat(profile.height) || null,
+                            weight: parseFloat(profile.weight) || null,
+                            ap_hi: parseInt(profile.systolic_bp) || null,
+                            ap_lo: parseInt(profile.diastolic_bp) || null,
+                            cholesterol_raw: parseFloat(profile.cholesterol_mgdl) || null,
+                            gluc_raw: parseFloat(profile.glucose_mgdl) || null,
+                            active: profile.active ? 1 : 0
+                        };
+
+                        // 1. Predict User Risk (STAYS THE SAME)
+                        try {
+                            const userRes = await fetch('http://localhost:8000/predict', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(userMetrics)
+                            }).then(r => r.json());
+                            if (userRes && userRes.cardio_risk_probability !== undefined) {
+                                ctxUserRisk = userRes.cardio_risk_probability;
+                            }
+                        } catch (err) {
+                            console.error("Failed to fetch user risk:", err);
+                        }
+
+                        // 2. Predict Hereditary Risk (NEW WEIGHTED LOGIC)
+                        const hereditaryPayload = {
+                            offspring_sex: profile.gender === 2 ? 'male' : 'female',
+                            father: formatMetrics(family.father),
+                            mother: formatMetrics(family.mother),
+                            grandfather: formatMetrics(family.grandfather),
+                            grandmother: formatMetrics(family.grandmother)
+                        };
+
+                        // Only proceed if we have mandatory parents
+                        if (hereditaryPayload.father && hereditaryPayload.mother) {
+                            try {
+                                const herRes = await fetch('http://localhost:8000/predict_hereditary', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(hereditaryPayload)
+                                }).then(r => r.json());
+
+                                if (herRes && herRes.fh_score !== undefined) {
+                                    ctxHereditaryRisk = herRes.fh_score;
+                                    
+                                    // Debug Output
+                                    console.group('Family History CVD Risk (Lloyd-Jones et al. Logic)');
+                                    console.log('Offspring Sex:', herRes.offspring_sex);
+                                    console.log('Included Relatives:', herRes.included.join(', '));
+                                    console.log('Final Weighted FH Score:', (herRes.fh_score * 100).toFixed(2) + '%');
+                                    
+                                    const debugTable = {};
+                                    Object.entries(herRes.relatives).forEach(([rel, d]) => {
+                                        if (d.included) {
+                                            debugTable[rel] = {
+                                                'Type': d.cvd_type,
+                                                'Prob': (d.predict_proba * 100).toFixed(1) + '%',
+                                                'Weight (Renorm)': (d.renorm_weight * 100).toFixed(1) + '%',
+                                                'Contrib': (d.contribution * 100).toFixed(2) + '%'
+                                            };
+                                        } else {
+                                            debugTable[rel] = { 'Status': 'Missing/Excluded' };
+                                        }
+                                    });
+                                    console.table(debugTable);
+                                    console.groupEnd();
+                                }
+                            } catch (err) {
+                                console.error("Failed to fetch hereditary risk:", err);
+                            }
+                        }
+                        console.groupEnd();
+
+                    } catch (e) {
+                        console.error('Risk Computation Pipeline Error:', e);
+                    }
+                }
 
                 const items = detections.map(d => CLASS_NAMES[d.classId]).filter((v, i, a) => a.indexOf(v) === i).join(', ');
-                const mealContext = `Detected meal: ${items}. Breakdown: ${macros.calories}kcal, ${macros.protein}g protein, ${macros.carbs}g carbs, ${macros.fats}g fat. Evaluated strictly against their profile goals.`;
+
+                let mealContext = `Detected meal: ${items}. Breakdown: ${macros.calories}kcal, ${macros.protein}g protein, ${macros.carbs}g carbs, ${macros.fats}g fat. `;
+                mealContext += "Evaluated strictly against their profile goals. ";
+
+                if (ctxUserRisk !== null) {
+                    mealContext += `\n>> MACHINE LEARNING VITALS: The user's personal Cardiovascular Risk probability is ${(ctxUserRisk * 100).toFixed(1)}%. `;
+                }
+                if (ctxHereditaryRisk !== null) {
+                    mealContext += `\n>> HEREDITARY VITALS: The overall Hereditary Cardiovascular Risk (combined via ML algorithms from their immediate relatives) is ${(ctxHereditaryRisk * 100).toFixed(1)}%. `;
+                }
+
+                mealContext += "\nAs the expert AI Nutritionist, YOUR FIRST OUTPUT must explicitly display their Risk Scores using markdown emphasis. Then immediately explain what these scores mean practically. Finally, give tailored nutritional advice regarding the food scanned based on these specific risks.";
 
                 try {
                     const aiResponse = await generateChatResponse(
-                        [{ role: 'user', content: 'Provide immediate feedback on this scanned meal.' }],
+                        [{ role: 'user', content: 'Provide immediate feedback on this scanned meal regarding my hereditary risk.' }],
                         profile || {},
                         [], // Strict isolation: no history
                         mealContext
@@ -273,7 +396,7 @@ export default function AnalysisResult() {
 
         try {
             // Get user profile safely
-            const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+            const { data: profile } = await supabase.rpc('secure_get_profile', { p_id: user.id });
 
             // Build meal context hook
             const items = detections.map(d => CLASS_NAMES[d.classId]).filter((v, i, a) => a.indexOf(v) === i).join(', ');
@@ -398,7 +521,7 @@ export default function AnalysisResult() {
                     <button
                         onClick={saveMeal}
                         disabled={isSaving}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-[#00d900] hover:bg-[#00c000] disabled:opacity-75 disabled:cursor-wait rounded-xl text-[0.85rem] font-bold text-black shadow-[0_4px_14px_rgba(0,217,0,0.3)] transition-all cursor-pointer"
+                        className="flex items-center gap-2 px-5 py-2.5 bg-[#00d900] hover:bg-[#00c000] disabled:opacity-75 disabled:cursor-wait rounded-xl text-[0.85rem] font-bold text-black shadow-[0_4px_14px_rgba(0_217_0_/_0.3)] transition-all cursor-pointer"
                     >
                         {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} strokeWidth={3} />}
                         {isSaving ? 'Saving...' : 'Confirm & Save'}
@@ -412,7 +535,7 @@ export default function AnalysisResult() {
                 <div ref={leftColRef} className="flex flex-col gap-4 w-full xl:w-[52%] shrink-0">
 
                     {/* Captured Meal card */}
-                    <div className="bg-white rounded-2xl border border-[#f3f4f6] shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden">
+                    <div className="bg-white rounded-2xl border border-[#f3f4f6] shadow-[0_2px_8px_rgba(0_0_0_/_0.04)] overflow-hidden">
                         <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#f3f4f6]">
                             <span className="font-bold text-[0.95rem] text-[#111827]">Captured Meal</span>
                             <span className={`text-[0.68rem] font-bold tracking-widest px-3 py-1 rounded-full border ${analyzing
@@ -450,7 +573,7 @@ export default function AnalysisResult() {
                     </div>
 
                     {/* Nutritional Breakdown card */}
-                    <div className="bg-white rounded-2xl border border-[#f3f4f6] shadow-[0_2px_8px_rgba(0,0,0,0.04)] p-5">
+                    <div className="bg-white rounded-2xl border border-[#f3f4f6] shadow-[0_2px_8px_rgba(0_0_0_/_0.04)] p-5">
                         <h3 className="font-bold text-[1rem] text-[#111827]">Nutritional Breakdown</h3>
                         <p className="text-[0.76rem] text-gray-400 mt-0.5 mb-5">
                             {detectedItems.length > 0
@@ -488,7 +611,7 @@ export default function AnalysisResult() {
 
                 {/* Right column — chat panel */}
                 <div
-                    className="flex-1 bg-white rounded-2xl border border-[#f3f4f6] shadow-[0_2px_8px_rgba(0,0,0,0.04)] flex flex-col overflow-hidden"
+                    className="flex-1 bg-white rounded-2xl border border-[#f3f4f6] shadow-[0_2px_8px_rgba(0_0_0_/_0.04)] flex flex-col overflow-hidden"
                     style={chatHeight ? { height: chatHeight } : {}}
                 >
                     <div className="flex items-center gap-3 px-5 py-4 border-b border-[#f3f4f6] shrink-0">
@@ -555,7 +678,7 @@ export default function AnalysisResult() {
                             />
                             <button
                                 onClick={sendMessage}
-                                className="w-9 h-9 rounded-full bg-[#00d900] hover:bg-[#00c000] flex items-center justify-center transition-colors cursor-pointer shrink-0 shadow-[0_2px_8px_rgba(0,217,0,0.35)]"
+                                className="w-9 h-9 rounded-full bg-[#00d900] hover:bg-[#00c000] flex items-center justify-center transition-colors cursor-pointer shrink-0 shadow-[0_2px_8px_rgba(0_217_0_/_0.35)]"
                             >
                                 <Send size={15} className="text-black" />
                             </button>

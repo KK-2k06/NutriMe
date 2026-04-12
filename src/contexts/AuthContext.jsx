@@ -59,28 +59,37 @@ export function AuthProvider({ children }) {
         return { error }
     }
 
-    // Save profile data to profiles table
+    // Save profile data to profiles table securely using RPC
     const saveProfile = async (profileData) => {
-        const { data, error } = await supabase
-            .from('profiles')
-            .upsert({
-                id: user.id,
-                ...profileData,
-                updated_at: new Date().toISOString(),
-            })
-            .select()
-        return { data, error }
+        const payload = {
+            p_id: user.id,
+            p_full_name: profileData.full_name,
+            p_age: profileData.age,
+            p_gender: profileData.gender,
+            p_height: profileData.height,
+            p_weight: profileData.weight,
+            p_systolic_bp: profileData.systolic_bp,
+            p_diastolic_bp: profileData.diastolic_bp,
+            p_cholesterol_mgdl: profileData.cholesterol_mgdl,
+            p_glucose_mgdl: profileData.glucose_mgdl,
+            p_active: profileData.active,
+            p_goal: profileData.goal,
+            p_target_calories: profileData.target_calories,
+            p_allergies: profileData.allergies,
+            p_cardio_risk_score: profileData.cardio_risk_score !== undefined ? profileData.cardio_risk_score : null,
+            p_profile_completed: profileData.profile_completed !== undefined ? profileData.profile_completed : true,
+            p_family_health_history: profileData.family_health_history || {}
+        };
+        
+        const { data, error } = await supabase.rpc('secure_upsert_profile', payload);
+        return { data, error };
     }
 
-    // Get profile data
+    // Get profile data securely via RPC
     const getProfile = async () => {
         if (!user) return { data: null, error: null }
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single()
-        return { data, error }
+        const { data, error } = await supabase.rpc('secure_get_profile', { p_id: user.id });
+        return { data, error };
     }
 
     const value = {

@@ -84,7 +84,7 @@ export default function Landing() {
                             />
 
                             {/* Floating Card */}
-                            <div className="absolute bottom-6 left-6 bg-white/95 backdrop-blur-md rounded-xl p-4 flex items-center gap-4 shadow-[0_10px_40px_rgba(0,0,0,0.15)] border border-white">
+                            <div className="absolute bottom-6 left-6 bg-white/95 backdrop-blur-md rounded-xl p-4 flex items-center gap-4 shadow-[0_10px_40px_rgba(0_0_0_/_0.15)] border border-white">
                                 <div className="bg-[#00d900]/20 p-2.5 rounded-lg flex items-center justify-center">
                                     <BarChart2 className="text-[#00d900]" size={20} />
                                 </div>
@@ -115,7 +115,7 @@ export default function Landing() {
                 <div className="max-w-[1100px] mx-auto w-full px-6 md:px-10 grid grid-cols-1 md:grid-cols-3 gap-8 pb-32">
 
                     {/* Step 1 */}
-                    <div className="relative bg-white rounded-3xl p-8 pt-12 flex flex-col items-center text-center shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-transparent hover:border-gray-100 transition-colors">
+                    <div className="relative bg-white rounded-3xl p-8 pt-12 flex flex-col items-center text-center shadow-[0_4px_20px_rgba(0_0_0_/_0.03)] border border-transparent hover:border-gray-100 transition-colors">
                         <div className="absolute -top-[18px] w-9 h-9 rounded-full bg-[#00d900] flex items-center justify-center text-white font-bold text-[0.95rem] shadow-sm">
                             1
                         </div>
@@ -129,7 +129,7 @@ export default function Landing() {
                     </div>
 
                     {/* Step 2 */}
-                    <div className="relative bg-white rounded-3xl p-8 pt-12 flex flex-col items-center text-center shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-transparent hover:border-gray-100 transition-colors">
+                    <div className="relative bg-white rounded-3xl p-8 pt-12 flex flex-col items-center text-center shadow-[0_4px_20px_rgba(0_0_0_/_0.03)] border border-transparent hover:border-gray-100 transition-colors">
                         <div className="absolute -top-[18px] w-9 h-9 rounded-full bg-[#00d900] flex items-center justify-center text-white font-bold text-[0.95rem] shadow-sm">
                             2
                         </div>
@@ -143,7 +143,7 @@ export default function Landing() {
                     </div>
 
                     {/* Step 3 */}
-                    <div className="relative bg-white rounded-3xl p-8 pt-12 flex flex-col items-center text-center shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-transparent hover:border-gray-100 transition-colors">
+                    <div className="relative bg-white rounded-3xl p-8 pt-12 flex flex-col items-center text-center shadow-[0_4px_20px_rgba(0_0_0_/_0.03)] border border-transparent hover:border-gray-100 transition-colors">
                         <div className="absolute -top-[18px] w-9 h-9 rounded-full bg-[#00d900] flex items-center justify-center text-white font-bold text-[0.95rem] shadow-sm">
                             3
                         </div>

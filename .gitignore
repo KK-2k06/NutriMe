@@ -40,4 +40,7 @@ Thumbs.db
 .eslintcache
 
 # Large Assets (optional, uncomment if using LFS or CDN)
-# public/models/best.onnx
+
+public/models/best.onnx
+public/*.png
+*.pkl
