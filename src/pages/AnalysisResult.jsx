@@ -9,7 +9,7 @@ import { generateChatResponse } from '../lib/aiApi';
 import { saveChatMessage, fetchRecentChats } from '../lib/historyApi';
 
 // ─── Detection helpers (shared with Dashboard) ──────────
-const INPUT_SIZE = 640;
+const INPUT_SIZE = 736;
 const CLASS_NAMES = ['apple', 'banana', 'boiled_egg', 'bread', 'fried_egg', 'milk', 'orange', 'AlooGobi', 'GulabJamun', 'Samosa', 'Ven Pongal', 'Uzhuntha vadai', 'Paneer briyani', 'Dosa', 'Idly'];
 const COLORS = ['#FF3B30', '#FF9500', '#FFCC00', '#34C759', '#007AFF', '#5856D6', '#AF52DE', '#FF6B35', '#E91E8C', '#00BCD4', '#8BC34A', '#FF5722', '#9C27B0', '#F9A825', '#26A69A'];
 
