@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 import os
 
-app = FastAPI(title="NutriMe Cardio Risk API")
+app = FastAPI(title="NutriNet Cardio Risk API")
 
 # Configure CORS
 app.add_middleware(
@@ -175,7 +175,7 @@ async def predict_hereditary(req: HereditaryRiskRequest):
 
 @app.get("/")
 async def root():
-    return {"status": "NutriMe Backend is running", "model_loaded": model is not None}
+    return {"status": "NutriNet Backend is running", "model_loaded": model is not None}
 
 if __name__ == "__main__":
     import uvicorn

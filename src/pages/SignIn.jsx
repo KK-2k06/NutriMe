@@ -64,7 +64,7 @@ export default function SignIn() {
                     <div className="bg-[#00d900] p-1.5 rounded-full flex items-center justify-center">
                         <Leaf size={20} className="text-black" fill="currentColor" />
                     </div>
-                    <span className="font-bold text-[1.25rem] text-[#111827]">NutriMe</span>
+                    <span className="font-bold text-[1.25rem] text-[#111827]">NutriNet</span>
                 </div>
                 <h1 className="text-[1.75rem] font-bold mb-2 text-[#111827]">Welcome back</h1>
                 <p className="text-[#6b7280] text-[0.95rem]">Please enter your details to sign in.</p>

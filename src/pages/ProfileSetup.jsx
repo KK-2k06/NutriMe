@@ -153,7 +153,7 @@ export default function ProfileSetup() {
                         <div className="bg-[#00d900] p-2 rounded-full flex items-center justify-center shadow-lg shadow-[#00d900]/20">
                             <Leaf size={22} className="text-black" fill="currentColor" />
                         </div>
-                        <span className="font-bold text-[1.4rem] tracking-tight text-[#111827]">NutriMe</span>
+                        <span className="font-bold text-[1.4rem] tracking-tight text-[#111827]">NutriNet</span>
                     </div>
                     <h1 className="text-[2.25rem] md:text-[2.75rem] font-extrabold mb-3 text-[#111827] tracking-tight">Health Records</h1>
                     <p className="text-[#6b7280] text-[1.05rem] md:text-[1.1rem] max-w-xl font-medium leading-relaxed">

@@ -1,47 +1,54 @@
-# 🥗 NutriMe
+# 🥗 NutriNet
 
-**NutriMe** is an AI-powered personalized nutrition assistant designed to help users track their meals, analyze nutritional content, and achieve their health goals through real-time feedback and intelligent insights.
+**NutriNet** is an advanced AI-powered personalized health and nutrition assistant. It uniquely combines real-time food detection on the edge with predictive cardiovascular risk modeling, helping users track their dietary habits while monitoring their long-term heart health and hereditary risks.
 
 ---
 
 ## 🚀 Features
 
-- **Real-time Food Detection**: Leverages advanced AI models (YOLO/ONNX) to identify food items directly from your camera.
-- **Nutritional Analysis**: Instant breakdown of calories, macros (carbs, protein, fats), and micronutrients for scanned meals.
-- **Interactive AI Nutritionist**: A dedicated chat assistant that provides personalized advice based on your meal scans and profile.
-- **Meal Logging and History**: Keep a detailed record of your nutrition journey with a visual history of past meals.
-- **Personalized Profile Setup**: Customizes nutritional goals and advice based on user-specific data like age, weight, and activity level.
-- **Smooth Dashboard**: A modern, responsive interface with real-time performance tracking (FPS).
+- **Edge AI Food Detection**: Utilizes a custom 15-class YOLO object detection model, converted to ONNX, running directly in the browser via `onnxruntime-web` for real-time, privacy-preserving food identification.
+- **Web-Based Multi-Threading**: Features a multi-threaded architecture using Web Workers to decouple heavy AI inference from the main UI thread, ensuring a smooth, responsive camera feed and dashboard.
+- **Cardiovascular Risk Prediction**: Integrates a standalone Random Forest machine learning model trained on a 70,000-row dataset to predict cardiovascular risk based on user health metrics (BMI, blood pressure, cholesterol, glucose).
+- **Hereditary Risk Logic**: Advanced backend logic to compute a combined family history risk score by analyzing the health profiles of parents and grandparents.
+- **Interactive Health Dashboard**: A modern, responsive interface built with React and Tailwind CSS, featuring real-time performance tracking (FPS) and visual meal histories.
+- **Secure Authentication & Data Storage**: Powered by Supabase for reliable user authentication and database management.
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: [React 19](https://react.dev/), [Vite](https://vitejs.dev/)
-- **Styling**: [Tailwind CSS 4](https://tailwindcss.com/), [Framer Motion](https://www.framer.com/motion/) (for animations)
-- **Database & Auth**: [Supabase](https://supabase.com/)
-- **AI/ML**: [onnxruntime-web](https://onnxruntime.ai/) (for browser-based inference)
+### Frontend
+- **Framework**: [React 19](https://react.dev/), [Vite](https://vitejs.dev/)
+- **Styling**: [Tailwind CSS 4](https://tailwindcss.com/), [Framer Motion](https://www.framer.com/motion/)
+- **Edge AI Inference**: [onnxruntime-web](https://onnxruntime.ai/)
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **Routing**: [React Router 7](https://reactrouter.com/)
+
+### Backend
+- **Framework**: [FastAPI](https://fastapi.tiangolo.com/) (Python)
+- **Machine Learning**: `scikit-learn` (Random Forest), `pandas`, `joblib`
+- **Database & Auth**: [Supabase](https://supabase.com/)
 
 ---
 
 ## 📁 Project Structure
 
 ```text
-src/
-├── components/     # Reusable UI components (Protected Routes, etc.)
-├── contexts/       # React Contexts for global state (AuthContext)
-├── layouts/        # Page layouts (AuthLayout, DashboardLayout)
-├── lib/            # External library configurations (Supabase client)
-├── pages/          # Individual application pages
-│   ├── AnalysisResult.jsx  # AI Analysis and Nutritionist Chat
-│   ├── Dashboard.jsx       # Real-time camera and quick stats
-│   ├── Landing.jsx         # Project entry point
-│   ├── LogMeal.jsx         # Manual meal logging
-│   └── ...
-├── utils/           # Helper functions and utilities
-└── App.jsx          # Root component and routing logic
+NutriNet/
+├── backend/          # FastAPI server for Cardio & Hereditary Risk Prediction
+│   ├── main.py       # API endpoints and model integration
+│   ├── models/       # Pickled Random Forest models
+│   └── risk_logic.py # Hereditary risk computation algorithms
+├── public/           # Static assets
+│   └── models/       # YOLO ONNX models for Edge AI
+├── src/              # React Frontend Source
+│   ├── components/   # Reusable UI elements
+│   ├── contexts/     # Global state management
+│   ├── layouts/      # Page structures (Auth, Dashboard)
+│   ├── lib/          # External configurations (Supabase client)
+│   ├── pages/        # Application views (Dashboard, Setup, etc.)
+│   └── utils/        # Helper functions
+└── App.jsx           # Root React component
 ```
 
 ---
@@ -50,51 +57,59 @@ src/
 
 ### Prerequisites
 
-- Node.js (version 18 or higher recommended)
+- Node.js (v18+)
+- Python (v3.9+)
 - npm or yarn
 
-### Installation
+### Frontend Setup
 
-1. **Clone the repository**:
-   ```bash
-   git clone <repository-url>
-   cd NutriMe
-   ```
-
-2. **Install dependencies**:
+1. **Install dependencies**:
    ```bash
    npm install
    ```
 
-3. **Configure Environment Variables**:
-   Create a `.env` file in the root directory and add your Supabase credentials:
+2. **Configure Environment Variables**:
+   Create a `.env` file in the root directory:
    ```env
    VITE_SUPABASE_URL=your_supabase_url
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
 
-4. **Run the development server**:
+3. **Run the React development server**:
    ```bash
    npm run dev
    ```
 
-5. **Build for production**:
+### Backend Setup
+
+1. **Navigate to the backend directory**:
    ```bash
-   npm run build
+   cd backend
+   ```
+
+2. **Install Python dependencies**:
+   ```bash
+   pip install fastapi uvicorn scikit-learn pandas joblib pydantic
+   ```
+
+3. **Start the FastAPI server**:
+   ```bash
+   python main.py
    ```
 
 ---
 
-## 🧠 AI Model
+## 🧠 AI Models Architecture
 
-The project uses a custom-trained ONNX model for food detection. The model is located in `public/models/best.onnx` and is executed directly in the browser using WebGL/WASM execution providers for optimal performance.
+1. **Food Detection (Edge)**: A highly optimized YOLO model, exported to ONNX format. Inference is executed entirely client-side using WebGL/WASM to guarantee low latency and zero server costs for image processing.
+2. **Cardiovascular Assessment (Cloud)**: A Random Forest classifier residing on the FastAPI backend, utilizing health markers to deliver probabilistic cardiovascular risk assessments.
 
 ---
 
 ## 📄 License
 
-This project is for educational/personal use.
+This project is for educational and research purposes.
 
 ---
 
-*Made with ❤️ by the NutriMe Team*
+*Made with ❤️ by the NutriNet Team*

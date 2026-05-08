@@ -58,7 +58,7 @@ export default function DashboardLayout() {
                                 <Leaf size={18} className="text-[#00d900]" fill="currentColor" />
                             </div>
                             <div className="leading-none">
-                                <p className="font-bold text-[0.95rem] text-[#111827]">NutriMe</p>
+                                <p className="font-bold text-[0.95rem] text-[#111827]">NutriNet</p>
                                 <p className="text-[0.7rem] text-gray-400 font-medium">Assistant</p>
                             </div>
                         </div>

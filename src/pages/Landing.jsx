@@ -34,7 +34,7 @@ export default function Landing() {
             <nav className="flex items-center justify-between px-6 py-5 max-w-[1200px] mx-auto w-full md:px-10 relative">
                 <div className="flex items-center gap-2">
                     <Utensils className="text-[#00d900]" size={26} />
-                    <span className="font-bold text-[1.3rem] tracking-tight">NutriMe</span>
+                    <span className="font-bold text-[1.3rem] tracking-tight">NutriNet</span>
                 </div>
                 <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center text-[#4b5563] font-medium text-[0.95rem]">
                     <a href="#features" onClick={scrollToFeatures} className="hover:text-black transition-colors cursor-pointer">Features</a>
@@ -166,7 +166,7 @@ export default function Landing() {
                 {/* Huge title ref similar to Google Deepmind Antigravity footer */}
                 <div className="w-full flex justify-center pointer-events-none select-none">
                     <h1 className="text-[20vw] leading-[0.8] font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white/10 to-transparent">
-                        NutriMe
+                        NutriNet
                     </h1>
                 </div>
             </section>

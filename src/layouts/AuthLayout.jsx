@@ -26,7 +26,7 @@ export default function AuthLayout() {
                         Start your journey to a healthier you.
                     </h1>
                     <p className="text-[1rem] font-normal text-[#e5e7eb] leading-[1.5]">
-                        Track your meals, discover new recipes, and achieve your fitness goals with NutriMe.
+                        Track your meals, discover new recipes, and achieve your fitness goals with NutriNet.
                     </p>
                 </div>
             </div>
